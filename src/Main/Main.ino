@@ -1,19 +1,19 @@
 #include <EnableInterrupt.h>  // to enable that all pins can generate external interrupts
-#define RED_LED 11
+#define RED_LED 11			// the pin that the LED is attached to
 #define BUTTON_ONE 3
-#define BUTTON_NUM 4
 
 #define SLEEP 0
 #define CONFIRM 1
 #define PATTERN 2
 
-// LED PIN = 2,4,6,8
-// BUTTON PIN = 3,5,7,9
-int ledPin[] = { 2, 4, 6, 8 };
-int buttonPin[] = { 3, 5, 7, 9 };
+//const int RED_LED = 11;	// RED LED PIN
+int ledPin[] = { 2, 4, 6, 8 }; // LED PIN
+int buttonPin[] = { 3, 5, 7, 9 }; // BUTTON PIN
+
+int max_number = sizeof(ledPin)/sizeof(int);
+
 bool pattern[] = {false, false, false, false};
 
-int redLed = RED_LED;  // the pin that the LED is attached to
 int brightness = 0;    // how bright the LED is
 int fadeAmount = 5;    // how many points to fade the LED by
 
@@ -34,7 +34,7 @@ void startGame() {
 }
 
 void generatePattern() {
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < max_number; i++) {
     pattern[i] = random(1,10)%2;
   }
 }
@@ -57,9 +57,9 @@ void sleepNow() {
 }
 
 void ledOnOff(int value) {
-  for(int i = 0; i < 4; i++) {
+  for(int i = 0; i < max_number; i++) {
     if(pattern[i] == true) {
-      digitalWrite(ledPin[i],value);
+      digitalWrite(ledPin[i], value);
     }
   }
 }
@@ -72,13 +72,13 @@ void setup() {
   timeTwo = 5000;
 
   // declare all pins that have to be INPUT or OUTPUT
-  pinMode(redLed, OUTPUT);
-  for (int i = 0; i < BUTTON_NUM; i++) {
+  pinMode(RED_LED, OUTPUT);
+  for (int i = 0; i < max_number; i++) {
     pinMode(ledPin[i], OUTPUT);
     pinMode(buttonPin[i], INPUT);
   }
 
-  enableInterrupt(BUTTON_ONE,startGame,RISING);
+  enableInterrupt(BUTTON_ONE, startGame, RISING);
 
   Serial.begin(9600);
   Serial.println("Welcome to the Catch the Led Game. Press Key T1 to Start");
@@ -92,7 +92,7 @@ void loop() {
   interrupts();
   if (sleepMode) {
     // set the brightness of pin 9:
-    analogWrite(redLed, brightness);
+    analogWrite(RED_LED, brightness);
     // change the brightness for next time through the loop:
     brightness = brightness + fadeAmount;
     // reverse the direction of the fading at the ends of the fade:
@@ -104,7 +104,7 @@ void loop() {
     delay(30);
   } else {
 
-    analogWrite(redLed, LOW);
+    analogWrite(RED_LED, LOW);
     
     //delay(10000); //if in this 10s don't press T1 button go in deep sleep
     Serial.println("You have 5s to press first button to confirm!!!");
@@ -119,7 +119,6 @@ void loop() {
       ledOnOff(HIGH);
       delay(timeTwo);
       ledOnOff(LOW);
-
     }
     
     Serial.println("The Game is restarting in 2.5s ...");
