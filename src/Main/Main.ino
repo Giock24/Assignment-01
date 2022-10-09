@@ -3,6 +3,10 @@
 #define BUTTON_ONE 3
 #define BUTTON_NUM 4
 
+#define SLEEP 0
+#define CONFIRM 1
+#define START 2
+
 // LED PIN = 2,4,6,8
 // BUTTON PIN = 3,5,7,9
 int ledPin[] = { 2, 4, 6, 8 };
@@ -12,25 +16,35 @@ int redLed = RED_LED;  // the pin that the LED is attached to
 int brightness = 0;    // how bright the LED is
 int fadeAmount = 5;    // how many points to fade the LED by
 
-volatile bool sleepMode = true;
+// variables not to be interrupted
+volatile bool sleepMode;
+volatile int timeOne, timeTwo, timeThree;
+volatile int stateGame;
+volatile bool start;
 
 // the setup routine runs once when you press reset:
 void setup() {
-  // declare pin 9 to be an output:
+  sleepMode = true;
+  stateGame = SLEEP;
+  start = false;
+
+  // declare all pins that have to be INPUT or OUTPUT
   pinMode(redLed, OUTPUT);
-  for (int i = 0; i < BUTTON_NUM - 1; i++) {
+  for (int i = 0; i < BUTTON_NUM; i++) {
     pinMode(ledPin[i], OUTPUT);
     pinMode(buttonPin[i], INPUT);
-    enableInterrupt(buttonPin[i],stopSleep,RISING);
   }
 
+  enableInterrupt(BUTTON_ONE,startGame,RISING);
+
   Serial.begin(9600);
+  Serial.println("Welcome to the Catch the Led Game. Press Key T1 to Start");
 }
 
 // the loop routine runs over and over again forever:
 void loop() {
   noInterrupts();
-  Serial.println("Hello");
+  //Serial.println("Hello");
 
   interrupts();
   if (sleepMode) {
@@ -43,22 +57,49 @@ void loop() {
       fadeAmount = -fadeAmount;
     }
     // wait for 30 milliseconds to see the dimming effect
-    Serial.println("I'm on SLEEP MODE!");
 
     delay(30);
   } else {
 
     analogWrite(redLed, LOW);
+    
+    //delay(10000); if in this 10s don't press T1 button go in deep sleep
+    if (!start) {
+      // go in deep sleep
+      sleepNow();
+    }
 
-    Serial.println("Going in SLEEP MODE in 5s ...");
+    Serial.println("The Game is restarting in 5s ...");
     delay(5000);
     noInterrupts();
     sleepMode = true;
     interrupts();
+    Serial.println("Welcome to the Catch the Led Game. Press Key T1 to Start");
 
   }
 }
 
-void stopSleep() {
-  sleepMode = false;
+void startGame() {
+  if (stateGame == SLEEP) {
+    sleepMode = false;    
+  } else if (stateGame == CONFIRM) {
+    start = true;
+  }
+}
+
+// here we put the arduino to sleep
+void sleepNow() {
+ //set_sleep_mode(SLEEP_MODE_PWR_DOWN); // sleep mode is set here
+ //sleep_enable(); // enables the sleep bit in the mcucr register
+ // so sleep is possible. just a safety pin
+ // Now it is time to enable an interrupt.
+ //attachInterrupt(0,wakeUpNow, LOW); // use interrupt 0 (pin 2) and run function
+ // wakeUpNow when pin 2 gets LOW
+ //sleep_mode(); // here the device is actually put to sleep!!
+  // THE PROGRAM CONTINUES FROM HERE AFTER WAKING UP
+ //sleep_disable(); // first thing after waking from sleep:
+ // disable sleep...
+ //detachInterrupt(0); // disables interrupt 0 on pin 2 so the
+ // wakeUpNow code will not be executed
+ // during normal running time.
 }
