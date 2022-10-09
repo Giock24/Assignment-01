@@ -1,5 +1,7 @@
 #include <EnableInterrupt.h>  // to enable that all pins can generate external interrupts
 #define RED_LED 11
+#define BUTTON_ONE 3
+#define BUTTON_NUM 4
 
 // LED PIN = 2,4,6,8
 // BUTTON PIN = 3,5,7,9
@@ -16,12 +18,12 @@ volatile bool sleepMode = true;
 void setup() {
   // declare pin 9 to be an output:
   pinMode(redLed, OUTPUT);
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < BUTTON_NUM - 1; i++) {
     pinMode(ledPin[i], OUTPUT);
     pinMode(buttonPin[i], INPUT);
+    enableInterrupt(buttonPin[i],stopSleep,RISING);
   }
 
-  // attachInterrupt(digitalPinToInterrupt(3), stopSleep, RISING); I don't know why throw a compile error
   Serial.begin(9600);
 }
 
@@ -42,12 +44,15 @@ void loop() {
     }
     // wait for 30 milliseconds to see the dimming effect
     Serial.println("I'm on SLEEP MODE!");
+
     delay(30);
   } else {
 
+    analogWrite(redLed, LOW);
+
+    Serial.println("Going in SLEEP MODE in 5s ...");
+    delay(5000);
     noInterrupts();
-    Serial.println("Going in SLEEP MODE in 2s ...");
-    delay(2000);
     sleepMode = true;
     interrupts();
 
@@ -55,5 +60,5 @@ void loop() {
 }
 
 void stopSleep() {
-  sleepMode = true;
+  sleepMode = false;
 }
