@@ -9,8 +9,7 @@
 #define GAME 4
 #define GAMEOVER 5
 
-//enum state = {INIT, SLEEP, CONFIRM, PATTERN,  GAME, GAMEOVER};
-
+//enum state = {INIT, SLEEP, CONFIRM, PATTERN, GAME, GAMEOVER};
 //const int RED_LED = 11;	// RED LED PIN
 int ledPin[] = { 2, 3, 4, 5 }; // LED PIN
 int buttonPin[] = { 6, 7, 8, 9 }; // BUTTON PIN
@@ -18,24 +17,44 @@ int buttonPin[] = { 6, 7, 8, 9 }; // BUTTON PIN
 int max_number = sizeof(ledPin)/sizeof(int);
 
 bool pattern[] = {false, false, false, false};
+bool read_values[] = {false, false, false, false};
 
 int brightness = 0;    // how bright the LED is
 int fadeAmount = 5;    // how many points to fade the LED by
+long prevts = 0;
 
 // variables not to be interrupted
-volatile unsigned long timeOne, timeTwo, timeThree; //T1 = 3, T2 = 5, T3 = 7 
+// T1: time in which the leds are turned off
+// T2: 
+// T3: 
+volatile unsigned long timeOne;
+const unsigned long timeTwo = 5000, timeThree = 7000; // in ms
 volatile int stateGame;
-volatile bool start;
+volatile bool inGame;
 
-void startGame() {
-  switch(stateGame) {
-    case SLEEP:
-       stateGame = CONFIRM;
-       break;
-    case CONFIRM:
-       start = true;
-       stateGame = PATTERN;
-       break;
+void buttonPushed() {
+
+  long ts = micros();
+  if (ts - prevts > 20000) {
+
+    prevts = ts;
+    
+    switch(stateGame) {
+      case SLEEP:
+        stateGame = CONFIRM;
+        break;
+      case CONFIRM:
+        inGame = true;
+        stateGame = PATTERN;
+        break;
+      case GAME:
+        for(int i=0; i < max_number; i++) {
+          if (digitalRead(buttonPin[i]) == HIGH) {
+            digitalWrite(ledPin[i], HIGH);
+          }
+        }
+        
+    }
   }
 }
 
@@ -50,16 +69,16 @@ void wakeUp(){}
 // here we put the arduino to sleep
 void sleepNow() {
   Serial.println("I'm going in sleep mode");
-  delay(2000);
+  delay(500);
   set_sleep_mode(SLEEP_MODE_PWR_DOWN); // sleep mode is set here
   sleep_enable(); // enables the sleep bit in the mcucr register
   sleep_mode();
 }
 
-void ledOnOff(int value) {
+void viewPattern(bool visibility) {
   for(int i = 0; i < max_number; i++) {
     if(pattern[i] == true) {
-      digitalWrite(ledPin[i], value);
+      digitalWrite(ledPin[i], visibility ? HIGH : LOW);
     }
   }
 }
@@ -67,8 +86,8 @@ void ledOnOff(int value) {
 // the setup routine runs once when you press reset:
 void setup() {
   stateGame = INIT;
-  start = false;
-  timeTwo = 5000;
+  inGame = false;
+  bool read_values[max_number];
 
   // declare all pins that have to be INPUT or OUTPUT
   pinMode(RED_LED, OUTPUT);
@@ -76,8 +95,8 @@ void setup() {
     pinMode(ledPin[i], OUTPUT);
     pinMode(buttonPin[i], INPUT);
     enableInterrupt(buttonPin[i], wakeUp, RISING);
+    enableInterrupt(buttonPin[i], buttonPushed, RISING);
   }
-  enableInterrupt(buttonPin[0], startGame, RISING);
 
   Serial.begin(9600);
 }
@@ -88,6 +107,7 @@ void loop() {
 
   switch(stateGame) {
     case INIT:
+        timeOne = random(2000, 5000);
         Serial.println("Welcome to the Catch the Led Game. Press Key T1 to Start");
         stateGame = SLEEP;
         break;
@@ -107,32 +127,44 @@ void loop() {
     case CONFIRM:
       analogWrite(RED_LED, LOW);
     
-      //delay(10000); //if in this 10s don't press T1 button go in deep sleep
-      Serial.println("You have 5s to press first button to confirm!!!");
-      delay(5000);
-      if (!start) {
+      Serial.println("You have " + (String)(timeOne/1000) + "s to press first button to confirm!!!");
+      delay(timeOne);
+      if (!inGame) {
         // go in deep sleep
         sleepNow();
-        stateGame = SLEEP;
+        noInterrupts();
+        inGame = false;
+        stateGame = INIT;
+        interrupts();
       }
       break;
     case PATTERN:
       generatePattern();
-      ledOnOff(HIGH);
+      viewPattern(true);
       delay(timeTwo);
-      ledOnOff(LOW);
+      viewPattern(false);
       stateGame = GAME;
       break;
     case GAME:
+      Serial.println("Go!");
+
+      
       //TODO
+      delay(timeThree);
+
+
+      for(int i=0; i < max_number; i++) {
+         read_values[i] = false;
+         digitalWrite(ledPin[i], LOW);
+      }
+
       stateGame = GAMEOVER;
       break;
     case GAMEOVER:
-      Serial.println("The Game is restarting in 2.5s ...");
-      delay(2500);
+      Serial.println("The Game is restarting ...");
       noInterrupts();
       stateGame = INIT;
-      start = false;
+      inGame = false;
       interrupts();
       break;
   }
