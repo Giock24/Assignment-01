@@ -59,6 +59,7 @@ void buttonPushed() {
         for(int i=0; i < max_number; i++) {
           int response = digitalRead(buttonPin[i]);
           if (response == HIGH) {
+            
             // added for debugging, when is fixed you can remove it
             //Serial.println("In the position " + (String)(i+1) + "the led must turn on");
             //Serial.println(i);            
