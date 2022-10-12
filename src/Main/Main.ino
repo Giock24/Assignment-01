@@ -25,6 +25,8 @@ int brightness = 0;    // how bright the LED is
 int fadeAmount = 5;    // how many points to fade the LED by
 long prevts = 0;
 int errors = 0;
+unsigned long PMillis = 0UL;
+unsigned long interval = 1000UL;
 
 // variables not to be interrupted
 // T1: time in which the leds are turned off
@@ -56,11 +58,15 @@ void buttonPushed() {
         }
         break;
       case PATTERN:
+        unsigned long CMillis = millis();
         for (int i = 0; i < max_number; i++){
           if (digitalRead(buttonPin[i]) == HIGH) {
+            Serial.println("Error during pattern by pressing button.. " + (String)i);
             errors++;
-            digitalWrite(RED_LED, HIGH);  
-            digitalWrite(RED_LED, LOW);
+            digitalWrite(RED_LED, HIGH);
+          }
+          if (CMillis - PMillis > interval) {
+              digitalWrite(RED_LED, LOW);
           }
         }
         break;  
@@ -76,7 +82,6 @@ void buttonPushed() {
             read_values[i] = true;            
           }
         }
-        
     }
   }
 }
@@ -195,8 +200,6 @@ void loop() {
         stateGame = GAMEOVER;
         break;
       }
-
-
 
       stateGame = PATTERN;
       break;
