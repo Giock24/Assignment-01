@@ -1,6 +1,7 @@
 #include <EnableInterrupt.h>  // to enable that all pins can generate external interrupts
 #include <avr/sleep.h>
-#define RED_LED 11			// the pin that the LED is attached to
+#define RED_LED 11			// the pin that the RED_LED is attached to
+#define AN_POT A0 //analog pin for potentiometer
 
 #define INIT 0
 #define SLEEP 1
@@ -31,6 +32,7 @@ volatile unsigned long timeOne;
 const unsigned long timeTwo = 5000, timeThree = 7000; // in ms
 volatile int stateGame;
 volatile bool inGame;
+int pos;
 
 void buttonPushed() {
 
@@ -41,15 +43,24 @@ void buttonPushed() {
     
     switch(stateGame) {
       case SLEEP:
-        stateGame = CONFIRM;
+        if (digitalRead(buttonPin[0]) == HIGH) {
+          stateGame = CONFIRM;
+        }
         break;
       case CONFIRM:
-        inGame = true;
-        stateGame = PATTERN;
+        if (digitalRead(buttonPin[0]) == HIGH) {
+          inGame = true;
+          stateGame = PATTERN;
+        }
         break;
       case GAME:
         for(int i=0; i < max_number; i++) {
-          if (digitalRead(buttonPin[i]) == HIGH) {
+          int response = digitalRead(buttonPin[i]);
+          if (response == HIGH) {
+            // added for debugging, when is fixed you can remove it
+            //Serial.println("In the position " + (String)(i+1) + "the led must turn on");
+            //Serial.println(i);
+            // ----------------------------------------------------------------            
             digitalWrite(ledPin[i], HIGH);
           }
         }
@@ -94,7 +105,7 @@ void setup() {
   for (int i = 0; i < max_number; i++) {
     pinMode(ledPin[i], OUTPUT);
     pinMode(buttonPin[i], INPUT);
-    enableInterrupt(buttonPin[i], wakeUp, RISING);
+    //enableInterrupt(buttonPin[i], wakeUp, RISING);
     enableInterrupt(buttonPin[i], buttonPushed, RISING);
   }
 
@@ -103,7 +114,6 @@ void setup() {
 
 // the loop routine runs over and over again forever:
 void loop() {
-    //Serial.println("Hello");
 
   switch(stateGame) {
     case INIT:
