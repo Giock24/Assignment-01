@@ -2,6 +2,7 @@
 #include <avr/sleep.h>
 #define RED_LED 11			// the pin that the RED_LED is attached to
 #define AN_POT A0 //analog pin for potentiometer
+#define MAX_ERRORS 3
 
 #define INIT 0
 #define SLEEP 1
@@ -23,6 +24,7 @@ bool read_values[] = {false, false, false, false};
 int brightness = 0;    // how bright the LED is
 int fadeAmount = 5;    // how many points to fade the LED by
 long prevts = 0;
+int errors = 0;
 
 // variables not to be interrupted
 // T1: time in which the leds are turned off
@@ -32,7 +34,6 @@ volatile unsigned long timeOne;
 const unsigned long timeTwo = 5000, timeThree = 7000; // in ms
 volatile int stateGame;
 volatile bool inGame;
-int pos;
 
 void buttonPushed() {
 
@@ -59,9 +60,9 @@ void buttonPushed() {
           if (response == HIGH) {
             // added for debugging, when is fixed you can remove it
             //Serial.println("In the position " + (String)(i+1) + "the led must turn on");
-            //Serial.println(i);
-            // ----------------------------------------------------------------            
+            //Serial.println(i);            
             digitalWrite(ledPin[i], HIGH);
+            read_values[i] = true;            
           }
         }
         
@@ -158,23 +159,43 @@ void loop() {
     case GAME:
       Serial.println("Go!");
 
-      
-      //TODO
       delay(timeThree);
 
+      for(int i=0; i < max_number; i++) {
+            if (read_values[i] != pattern[i]) {
+           errors++;
+           digitalWrite(RED_LED, HIGH);  
+           break;         
+         }
+      }
 
       for(int i=0; i < max_number; i++) {
          read_values[i] = false;
          digitalWrite(ledPin[i], LOW);
       }
 
-      stateGame = GAMEOVER;
+      
+
+      digitalWrite(RED_LED, LOW);
+
+      Serial.println(errors);
+      
+      if (errors >= MAX_ERRORS) {
+        stateGame = GAMEOVER;
+        break;
+      }
+
+
+
+      stateGame = PATTERN;
       break;
     case GAMEOVER:
+      Serial.println("You lose, LOSER!");
       Serial.println("The Game is restarting ...");
       noInterrupts();
       stateGame = INIT;
       inGame = false;
+      errors = 0;
       interrupts();
       break;
   }
