@@ -55,6 +55,15 @@ void buttonPushed() {
           stateGame = PATTERN;
         }
         break;
+      case PATTERN:
+        for (int i = 0; i < max_number; i++){
+          if (digitalRead(buttonPin[i]) == HIGH) {
+            errors++;
+            digitalWrite(RED_LED, HIGH);  
+            digitalWrite(RED_LED, LOW);
+          }
+        }
+        break;  
       case GAME:
         for(int i=0; i < max_number; i++) {
           int response = digitalRead(buttonPin[i]);
