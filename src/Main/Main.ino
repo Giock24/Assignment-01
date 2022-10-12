@@ -51,6 +51,7 @@ void buttonPushed() {
       case CONFIRM:
         if (digitalRead(buttonPin[0]) == HIGH) {
           inGame = true;
+          Serial.println("Confirmed. The game is starting...");
           stateGame = PATTERN;
         }
         break;
@@ -162,7 +163,7 @@ void loop() {
       delay(timeThree);
 
       for(int i=0; i < max_number; i++) {
-            if (read_values[i] != pattern[i]) {
+         if (read_values[i] != pattern[i]) {
            errors++;
            digitalWrite(RED_LED, HIGH);  
            break;         
@@ -174,7 +175,7 @@ void loop() {
          digitalWrite(ledPin[i], LOW);
       }
 
-      
+      delay(timeTwo);
 
       digitalWrite(RED_LED, LOW);
 
