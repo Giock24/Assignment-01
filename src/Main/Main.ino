@@ -3,6 +3,7 @@
 #define RED_LED 11			// the pin that the RED_LED is attached to
 #define AN_POT A0 //analog pin for potentiometer
 #define MAX_ERRORS 3
+#define ONE_SEC 1000 // 1000ms = 1sec 
 
 #define INIT 0
 #define SLEEP 1
@@ -25,8 +26,8 @@ int brightness = 0;    // how bright the LED is
 int fadeAmount = 5;    // how many points to fade the LED by
 long prevts = 0;
 int errors = 0;
-unsigned long PMillis = 0UL;
-unsigned long interval = 1000UL;
+//unsigned long PMillis = 0UL;
+//unsigned long interval = 1000UL;
 
 // variables not to be interrupted
 // T1: time in which the leds are turned off
@@ -58,16 +59,18 @@ void buttonPushed() {
         }
         break;
       case PATTERN:
-        unsigned long CMillis = millis();
+         // unsigned long CMillis = 2500;//millis();
         for (int i = 0; i < max_number; i++){
           if (digitalRead(buttonPin[i]) == HIGH) {
             Serial.println("Error during pattern by pressing button.. " + (String)i);
             errors++;
-            digitalWrite(RED_LED, HIGH);
+            //digitalWrite(RED_LED, HIGH);
+            //digitalWrite(RED_LED, LOW);
           }
-          if (CMillis - PMillis > interval) {
-              digitalWrite(RED_LED, LOW);
-          }
+         // if (CMillis - PMillis > interval) {
+         //     digitalWrite(RED_LED, LOW);
+         //     PMillis = CMillis;
+         // }
         }
         break;  
       case GAME:
