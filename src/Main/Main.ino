@@ -3,7 +3,7 @@
 #define RED_LED 11			// the pin that the RED_LED is attached to
 #define AN_POT A0 //analog pin for potentiometer
 #define MAX_ERRORS 3
-#define ONE_SEC 1000 // 1000ms = 1sec 
+#define ONE_SEC 1000 // 1000ms = 1sec
 
 #define INIT 0
 #define SLEEP 1
