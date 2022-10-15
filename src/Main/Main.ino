@@ -33,8 +33,8 @@ int errors = 0;
 
 // variables not to be interrupted
 // T1: time in which the leds are turned off
-// T2: 
-// T3: 
+// T2: time in which the leds are on during the pattern is showed
+// T3: time in which the led are off and player can interact to turn on
 volatile unsigned long timeOne;
 const unsigned long timeTwo = 5000, timeThree = 7000; // in ms
 volatile int stateGame;
@@ -90,8 +90,6 @@ void generatePattern() {
   }
 }
 
-void wakeUp(){}
-
 // here we put the arduino to sleep
 void sleepNow() {
   Serial.println("I'm going in sleep mode");
@@ -109,9 +107,14 @@ void viewPattern(bool visibility) {
   }
 }
 
-void LedCheck(){
-  if(stateGame != SLEEP && digitalRead(RED_LED) == HIGH){
+void errorCheck() {
+  errors >= MAX_ERRORS ? stateGame = GAMEOVER : stateGame = PATTERN;
+}
+
+void ledCheck(){
+  if(stateGame != SLEEP && digitalRead(RED_LED) == HIGH){    
     digitalWrite(RED_LED, LOW);
+    errorCheck();
   }
 }
 
@@ -126,11 +129,10 @@ void setup() {
   for (int i = 0; i < max_number; i++) {
     pinMode(ledPin[i], OUTPUT);
     pinMode(buttonPin[i], INPUT);
-    //enableInterrupt(buttonPin[i], wakeUp, RISING);
     enableInterrupt(buttonPin[i], buttonPushed, RISING);
   }
   Timer1.initialize(1650000);
-  Timer1.attachInterrupt(LedCheck);
+  Timer1.attachInterrupt(ledCheck);
   Serial.begin(9600);
 }
 
@@ -141,7 +143,9 @@ void loop() {
     case INIT:
         timeOne = random(2000, 5000);
         Serial.println("Welcome to the Catch the Led Game. Press Key T1 to Start");
+        noInterrupts();
         stateGame = SLEEP;
+        interrupts();
         break;
     case SLEEP:
        // set the brightness of RED_LED pin:
@@ -173,7 +177,9 @@ void loop() {
       viewPattern(true);
       delay(timeTwo);
       viewPattern(false);
+      noInterrupts();
       stateGame = GAME;
+      interrupts();
       break;
     case GAME:
       Serial.println("Go!");
@@ -182,28 +188,28 @@ void loop() {
 
       for(int i=0; i < max_number; i++) {
          if (read_values[i] != pattern[i]) {
-           errors++;
-           digitalWrite(RED_LED, HIGH);  
-           break;         
+            noInterrupts();
+            errors++;
+            interrupts(); 
+            digitalWrite(RED_LED, HIGH);  
+            break;         
          }
       }
 
       for(int i=0; i < max_number; i++) {
-         read_values[i] = false;
-         digitalWrite(ledPin[i], LOW);
+          noInterrupts();
+          read_values[i] = false;
+          interrupts();
+          digitalWrite(ledPin[i], LOW);
       }
-      delay(timeTwo);
+      
       Serial.println(errors);
 
-      if (errors >= MAX_ERRORS) {
-        stateGame = GAMEOVER;
-        break;
-      }
+      errorCheck();
 
-      stateGame = PATTERN;
       break;
     case GAMEOVER:
-      Serial.println("You lose, LOSER!");
+      Serial.println("You lose!");
       Serial.println("The Game is restarting ...");
       noInterrupts();
       stateGame = INIT;
