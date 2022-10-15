@@ -1,5 +1,6 @@
 #include <EnableInterrupt.h>  // to enable that all pins can generate external interrupts
 #include <avr/sleep.h>
+#include <TimerOne.h>
 #define RED_LED 11			// the pin that the RED_LED is attached to
 #define AN_POT A0 //analog pin for potentiometer
 #define MAX_ERRORS 3
@@ -26,8 +27,9 @@ int brightness = 0;    // how bright the LED is
 int fadeAmount = 5;    // how many points to fade the LED by
 long prevts = 0;
 int errors = 0;
-//unsigned long PMillis = 0UL;
-//unsigned long interval = 1000UL;
+
+// TODO
+// int matchesWon = 0;
 
 // variables not to be interrupted
 // T1: time in which the leds are turned off
@@ -59,25 +61,18 @@ void buttonPushed() {
         }
         break;
       case PATTERN:
-         // unsigned long CMillis = 2500;//millis();
         for (int i = 0; i < max_number; i++){
           if (digitalRead(buttonPin[i]) == HIGH) {
             Serial.println("Error during pattern by pressing button.. " + (String)i);
             errors++;
-            //digitalWrite(RED_LED, HIGH);
-            //digitalWrite(RED_LED, LOW);
+            digitalWrite(RED_LED, HIGH);
           }
-         // if (CMillis - PMillis > interval) {
-         //     digitalWrite(RED_LED, LOW);
-         //     PMillis = CMillis;
-         // }
         }
         break;  
       case GAME:
         for(int i=0; i < max_number; i++) {
           int response = digitalRead(buttonPin[i]);
           if (response == HIGH) {
-            
             // added for debugging, when is fixed you can remove it
             //Serial.println("In the position " + (String)(i+1) + "the led must turn on");
             //Serial.println(i);            
@@ -114,6 +109,12 @@ void viewPattern(bool visibility) {
   }
 }
 
+void LedCheck(){
+  if(stateGame != SLEEP && digitalRead(RED_LED) == HIGH){
+    digitalWrite(RED_LED, LOW);
+  }
+}
+
 // the setup routine runs once when you press reset:
 void setup() {
   stateGame = INIT;
@@ -128,7 +129,8 @@ void setup() {
     //enableInterrupt(buttonPin[i], wakeUp, RISING);
     enableInterrupt(buttonPin[i], buttonPushed, RISING);
   }
-
+  Timer1.initialize(1650000);
+  Timer1.attachInterrupt(LedCheck);
   Serial.begin(9600);
 }
 
@@ -151,12 +153,10 @@ void loop() {
         fadeAmount = -fadeAmount;
       }
       // wait for 30 milliseconds to see the dimming effect
-
       delay(30);
       break;
     case CONFIRM:
       analogWrite(RED_LED, LOW);
-    
       Serial.println("You have " + (String)(timeOne/1000) + "s to press first button to confirm!!!");
       delay(timeOne);
       if (!inGame) {
@@ -192,13 +192,9 @@ void loop() {
          read_values[i] = false;
          digitalWrite(ledPin[i], LOW);
       }
-
       delay(timeTwo);
-
-      digitalWrite(RED_LED, LOW);
-
       Serial.println(errors);
-      
+
       if (errors >= MAX_ERRORS) {
         stateGame = GAMEOVER;
         break;
