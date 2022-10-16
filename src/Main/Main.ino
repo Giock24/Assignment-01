@@ -29,8 +29,8 @@ long prevts = 0;
 int errors = 0;
 int score = 0;
 
-// TODO
-// int matchesWon = 0;
+int sensorValue = 0;
+int difficulty = 0;
 
 // variables not to be interrupted
 // T1: time in which the leds are turned off
@@ -58,6 +58,10 @@ void buttonPushed() {
         if (digitalRead(buttonPin[0]) == HIGH) {
           inGame = true;
           Serial.println("Confirmed. The game is starting...");
+
+          sensorValue = analogRead(AN_POT);
+          difficulty = map(sensorValue, 0, 1023, 1, 4);
+
           stateGame = PATTERN;
         }
         break;
