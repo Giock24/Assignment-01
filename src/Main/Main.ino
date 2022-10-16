@@ -4,7 +4,8 @@
 #define RED_LED 11  // the pin that the RED_LED is attached to
 #define AN_POT A0   //analog pin for potentiometer
 #define MAX_ERRORS 3
-#define ONE_SEC 1000  // 1000ms = 1sec
+#define ONE_SEC 1000   // 1000ms = 1sec
+#define HARD_DIFF 150  // 150ms = 0.15s
 
 #define INIT 0
 #define SLEEP 1
@@ -13,8 +14,6 @@
 #define GAME 4
 #define GAMEOVER 5
 
-//enum state = {INIT, SLEEP, CONFIRM, PATTERN, GAME, GAMEOVER};
-//const int RED_LED = 11;	// RED LED PIN
 int ledPin[] = { 2, 3, 4, 5 };     // LED PIN
 int buttonPin[] = { 6, 7, 8, 9 };  // BUTTON PIN
 
@@ -28,7 +27,6 @@ int fadeAmount = 5;  // how many points to fade the LED by
 long prevts = 0;
 int errors = 0;
 int score = 0;
-
 int sensorValue = 0;
 int difficulty = 0;
 
@@ -42,12 +40,9 @@ volatile int stateGame;
 volatile bool inGame;
 
 void buttonPushed() {
-
   long ts = micros();
   if (ts - prevts > 20000) {
-
     prevts = ts;
-
     switch (stateGame) {
       case SLEEP:
         if (digitalRead(buttonPin[0]) == HIGH) {
@@ -58,10 +53,6 @@ void buttonPushed() {
         if (digitalRead(buttonPin[0]) == HIGH) {
           inGame = true;
           Serial.println("Confirmed. The game is starting...");
-
-          sensorValue = analogRead(AN_POT);
-          difficulty = map(sensorValue, 0, 1023, 1, 4);
-
           stateGame = PATTERN;
         }
         break;
@@ -79,9 +70,6 @@ void buttonPushed() {
         for (int i = 0; i < max_number; i++) {
           int response = digitalRead(buttonPin[i]);
           if (response == HIGH) {
-            // added for debugging, when is fixed you can remove it
-            //Serial.println("In the position " + (String)(i+1) + "the led must turn on");
-            //Serial.println(i);
             digitalWrite(ledPin[i], HIGH);
             read_values[i] = true;
           }
@@ -123,6 +111,15 @@ void ledCheck() {
   }
 }
 
+unsigned long function(unsigned long time, unsigned long value) {
+  unsigned long newTime = time - (value * score * difficulty);
+  if (newTime >= 0) {
+    return newTime;
+  } else {
+    return HARD_DIFF;
+  }
+}
+
 bool checkArrays() {
   for (int i = 0; i < max_number; i++) {
     if (read_values[i] != pattern[i]) {
@@ -145,14 +142,16 @@ void setup() {
     pinMode(buttonPin[i], INPUT);
     enableInterrupt(buttonPin[i], buttonPushed, RISING);
   }
+
+  // setting period and behaviour of the timer.
   Timer1.initialize(1650000);
   Timer1.attachInterrupt(ledCheck);
+
   Serial.begin(9600);
 }
 
 // the loop routine runs over and over again forever:
 void loop() {
-
   switch (stateGame) {
     case INIT:
       timeOne = random(2000, 5000);
@@ -161,6 +160,7 @@ void loop() {
       stateGame = SLEEP;
       interrupts();
       break;
+
     case SLEEP:
       // set the brightness of RED_LED pin:
       analogWrite(RED_LED, brightness);
@@ -173,7 +173,11 @@ void loop() {
       // wait for 30 milliseconds to see the dimming effect
       delay(30);
       break;
+
     case CONFIRM:
+      sensorValue = analogRead(AN_POT);
+      difficulty = map(sensorValue, 0, 1023, 1, 4);
+      Serial.println(difficulty);
       analogWrite(RED_LED, LOW);
       Serial.println("You have " + (String)(timeOne / 1000) + "s to press first button to confirm!!!");
       delay(timeOne);
@@ -186,10 +190,11 @@ void loop() {
         interrupts();
       }
       break;
+
     case PATTERN:
       generatePattern();
       viewPattern(true);
-      delay(timeTwo);
+      delay(function(timeTwo, 250));
       viewPattern(false);
       noInterrupts();
       if (stateGame != GAMEOVER) {
@@ -197,37 +202,29 @@ void loop() {
       }
       interrupts();
       break;
+
     case GAME:
       Serial.println("Go!");
-
-      delay(timeThree);
-
+      delay(function(timeThree, 350));
       noInterrupts();
-
       if (checkArrays()) {
         score++;
         Serial.println("New point! Score: " + (String)score);
-        //TODO : function -> timeThree(7000) - (350 * score)
-        // F(X) = 7000 - (350 * X)
-
       } else {
         errors++;
         digitalWrite(RED_LED, HIGH);
         Serial.println("Penalty!");
       }
-
       for (int i = 0; i < max_number; i++) {
         read_values[i] = false;
         digitalWrite(ledPin[i], LOW);
       }
-
       Serial.println(errors);
       errorCheck();
-
       interrupts();
-      delay(timeOne); // this delay need to see that user's leds are off
-
+      delay(timeOne);  // this delay need to see that user's leds are off
       break;
+
     case GAMEOVER:
       Serial.println("You lose!");
       Serial.println("The Game is restarting ...");
@@ -235,6 +232,7 @@ void loop() {
       stateGame = INIT;
       inGame = false;
       errors = 0;
+      score = 0;
       interrupts();
       break;
   }
