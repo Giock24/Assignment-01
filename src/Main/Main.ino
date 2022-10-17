@@ -4,16 +4,17 @@
 #define RED_LED 11  // the pin that the RED_LED is attached to
 #define AN_POT A0   //analog pin for potentiometer
 #define MAX_ERRORS 3
-#define ONE_SEC 1000   // 1000ms = 1sec
 #define HARD_DIFF 150  // 150ms = 0.15s
 
+/*
 #define INIT 0
 #define SLEEP 1
 #define CONFIRM 2
 #define PATTERN 3
 #define GAME 4
 #define GAMEOVER 5
-
+*/
+enum stateType {INIT, SLEEP, CONFIRM, PATTERN, GAME, GAMEOVER};
 int ledPin[] = { 2, 3, 4, 5 };     // LED PIN
 int buttonPin[] = { 6, 7, 8, 9 };  // BUTTON PIN
 
@@ -36,7 +37,7 @@ int difficulty = 0;
 // T3: time in which the led are off and player can interact to turn on
 volatile unsigned long timeOne;
 const unsigned long timeTwo = 5000, timeThree = 7000;  // in ms
-volatile int stateGame;
+volatile enum stateType stateGame;
 volatile bool inGame;
 
 void buttonPushed() {
@@ -219,7 +220,7 @@ void loop() {
         read_values[i] = false;
         digitalWrite(ledPin[i], LOW);
       }
-      Serial.println(errors);
+      //Serial.println(errors);
       errorCheck();
       interrupts();
       delay(timeOne);  // this delay need to see that user's leds are off
